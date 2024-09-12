@@ -18,35 +18,72 @@ bot = telebot.TeleBot(token)
 
 
 class User:
-    def __init__(self, user_id=None, name=None,used_cities=list(),score=0,max_score=0):
+    def __init__(self, user_id=None, name=None,used_cities=list(),score=0,max_score=0, dificulty_level=1):
         self.user_id=user_id
         self.name=name
         self.used_cities=list(used_cities)
         self.score=score
         self.max_score=max_score
+        self.dificulty_level=dificulty_level
+
 
     def update_max_score(self):
         self.max_score=max(self.max_score,self.score)
 
 DATA=[]
 
-
+@bot.message_handler(commands=['help'])
+def start_help_func(message):
+    bot.send_message(message.chat.id, "Доступные команды отображены на кнопках у вас на экране")
 
 @bot.message_handler(commands=['start'])
 def start_func(message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     btn1 = types.KeyboardButton("Играть")
-    markup.add(btn1)
+    btn2 = types.KeyboardButton("Таблица рекордов")
+    markup.add(btn1, btn2)
     bot.send_message(message.chat.id,
                      text="Здраствуйте, {0.first_name}!\nЭтот бот создан для того чтобы победить тебя в игре в города. Считаешь что это не так? Тогда жми играть и покажи на что ты способен!".format(
                            message.from_user), reply_markup=markup)
-    bot.register_next_step_handler(message, reg_game)
 
-def reg_game(message):
+@bot.message_handler(content_types=['text'])
+def chose_func(message):
     if message.text=="Играть":
-        user=(User(user_id=message.chat.id, name=None))
-        bot.register_next_step_handler(message, game, user)
+        user=(User(user_id=message.chat.id, name=message.from_user.first_name,))
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        btn1 = types.KeyboardButton("Легко")
+        btn2 = types.KeyboardButton("Сложно")
+        btn3 = types.KeyboardButton("Невозможно")
+        markup.add(btn1,btn2,btn3)
+        bot.send_message(message.chat.id,'Выбери уровень сложности',reply_markup=markup)
 
+        bot.register_next_step_handler(message, dif_lvl, user)
+    elif message.text=="Таблица рекордов":
+        records()
+    else:
+        bot.send_message(message.chat.id, 'Сообщение не распознано')
+
+
+def dif_lvl(message, user):
+    mes=message.text.capitalize()
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    btn1 = types.KeyboardButton("Сдаться")
+    markup.add(btn1)
+    if mes=="Легко":
+        user.dificulty_level=20
+        bot.send_message(message.chat.id, 'Чтобы начать играть напиши название любого города!', reply_markup=markup)
+        bot.register_next_step_handler(message, game, user)
+    elif mes=="Сложно":
+        user.dificulty_level=100
+        bot.send_message(message.chat.id, 'Чтобы начать играть напиши название любого города!', reply_markup=markup)
+        bot.register_next_step_handler(message, game, user)
+    elif mes=="Невозможно":
+        user.dificulty_level=50000
+        bot.send_message(message.chat.id, 'Чтобы начать играть напиши название любого города!', reply_markup=markup)
+        bot.register_next_step_handler(message, game, user)
+    else:
+        bot.send_message(message.chat.id, 'Не распознано, попробуй еще раз')
+        bot.register_next_step_handler(message, dif_lvl, user)
 
 def game(message, user):
     print(user.score,user.used_cities)
@@ -66,6 +103,9 @@ def game(message, user):
         user.used_cities.append(message.text.capitalize())
         user.score+=1
         bot_game(message,user)
+    elif message.text.capitalize() == "Сдаться":
+        bot.send_message(message.chat.id, 'Ха-Ха-Ха Я снова победил!')
+        bot.register_next_step_handler(message, final, user)
     elif str(message.text.capitalize()) in user.used_cities:
         bot.send_message(message.chat.id, 'Этот город уже был, попробуй еще раз')
         bot.register_next_step_handler(message, game, user)
@@ -108,11 +148,14 @@ def bot_game(message,user):
         else:
             bot.send_message(user.user_id, 'Ты победил! Игра окончена')
 
+def final(message, user):
+    ...
 
-@bot.message_handler(comands=['help'])
-def start_help_func(message):
-    bot.send_message(message.chat.id,
-                     "")
+def records():
+    ...
+
+
+
 
 def thread_func():
     while True:
