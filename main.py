@@ -11,30 +11,31 @@ from sqlite3 import Error
 from pyexpat.errors import messages
 from telebot import types
 
-
 token = os.getenv('TOKEN')
 
 bot = telebot.TeleBot(token)
 
 
 class User:
-    def __init__(self, user_id=None, name=None,used_cities=list(),score=0,max_score=0, dificulty_level=1):
-        self.user_id=user_id
-        self.name=name
-        self.used_cities=list(used_cities)
-        self.score=score
-        self.max_score=max_score
-        self.dificulty_level=dificulty_level
-
+    def __init__(self, user_id=None, name=None, used_cities=list(), score=0, max_score=0, dificulty_level=1):
+        self.user_id = user_id
+        self.name = name
+        self.used_cities = list(used_cities)
+        self.score = score
+        self.max_score = max_score
+        self.dificulty_level = dificulty_level
 
     def update_max_score(self):
-        self.max_score=max(self.max_score,self.score)
+        self.max_score = max(self.max_score, self.score)
 
-DATA=[]
+
+DATA = []
+
 
 @bot.message_handler(commands=['help'])
 def start_help_func(message):
     bot.send_message(message.chat.id, "Доступные команды отображены на кнопках у вас на экране")
+
 
 @bot.message_handler(commands=['start'])
 def start_func(message):
@@ -44,56 +45,58 @@ def start_func(message):
     markup.add(btn1, btn2)
     bot.send_message(message.chat.id,
                      text="Здраствуйте, {0.first_name}!\nЭтот бот создан для того чтобы победить тебя в игре в города. Считаешь что это не так? Тогда жми играть и покажи на что ты способен!".format(
-                           message.from_user), reply_markup=markup)
+                         message.from_user), reply_markup=markup)
+
 
 @bot.message_handler(content_types=['text'])
 def chose_func(message):
-    if message.text=="Играть":
-        user=(User(user_id=message.chat.id, name=message.from_user.first_name,))
+    if message.text == "Играть":
+        user = (User(user_id=message.chat.id, name=message.from_user.first_name, ))
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         btn1 = types.KeyboardButton("Легко")
         btn2 = types.KeyboardButton("Сложно")
         btn3 = types.KeyboardButton("Невозможно")
-        markup.add(btn1,btn2,btn3)
-        bot.send_message(message.chat.id,'Выбери уровень сложности',reply_markup=markup)
+        markup.add(btn1, btn2, btn3)
+        bot.send_message(message.chat.id, 'Выбери уровень сложности', reply_markup=markup)
 
         bot.register_next_step_handler(message, dif_lvl, user)
-    elif message.text=="Таблица рекордов":
+    elif message.text == "Таблица рекордов":
         records()
     else:
         bot.send_message(message.chat.id, 'Сообщение не распознано')
 
 
 def dif_lvl(message, user):
-    mes=message.text.capitalize()
+    mes = message.text.capitalize()
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     btn1 = types.KeyboardButton("Сдаться")
     markup.add(btn1)
-    if mes=="Легко":
-        user.dificulty_level=20
+    if mes == "Легко":
+        user.dificulty_level = 20
         bot.send_message(message.chat.id, 'Чтобы начать играть напиши название любого города!', reply_markup=markup)
         bot.register_next_step_handler(message, game, user)
-    elif mes=="Сложно":
-        user.dificulty_level=100
+    elif mes == "Сложно":
+        user.dificulty_level = 100
         bot.send_message(message.chat.id, 'Чтобы начать играть напиши название любого города!', reply_markup=markup)
         bot.register_next_step_handler(message, game, user)
-    elif mes=="Невозможно":
-        user.dificulty_level=50000
+    elif mes == "Невозможно":
+        user.dificulty_level = 50000
         bot.send_message(message.chat.id, 'Чтобы начать играть напиши название любого города!', reply_markup=markup)
         bot.register_next_step_handler(message, game, user)
     else:
         bot.send_message(message.chat.id, 'Не распознано, попробуй еще раз')
         bot.register_next_step_handler(message, dif_lvl, user)
 
+
 def game(message, user):
-    print(user.score,user.used_cities)
-    city=str(message.text.capitalize())
+    print(user.score, user.used_cities)
+    city = str(message.text.capitalize())
     if (
             (
-                user.score == 0
-                or city[0].capitalize()==user.used_cities[-1][-1].capitalize()
-                or city[0].capitalize()==user.used_cities[-1][-2].capitalize()
-                and user.used_cities[-1][-1] in ['ь','ъ','ы','й']
+                    user.score == 0
+                    or city[0].capitalize() == user.used_cities[-1][-1].capitalize()
+                    or city[0].capitalize() == user.used_cities[-1][-2].capitalize()
+                    and user.used_cities[-1][-1] in ['ь', 'ъ', 'ы', 'й']
 
             )
             and city in data_cities
@@ -101,8 +104,8 @@ def game(message, user):
 
     ):
         user.used_cities.append(message.text.capitalize())
-        user.score+=1
-        bot_game(message,user)
+        user.score += 1
+        bot_game(message, user)
     elif message.text.capitalize() == "Сдаться":
         bot.send_message(message.chat.id, 'Ха-Ха-Ха Я снова победил!')
         bot.register_next_step_handler(message, final, user)
@@ -116,29 +119,19 @@ def game(message, user):
         bot.send_message(message.chat.id, 'Такого города нет, попробуй еще раз')
         bot.register_next_step_handler(message, game, user)
 
-def bot_game(message,user):
-    for i in data_cities:
-        if (
-                i[-1] in ['а','к','о']
-                and (
-                    i[0]==user.used_cities[-1][-1].capitalize()
-                    or user.used_cities[-1][-1] in ['ь','ъ','ы','й']
-                    and i[0]==user.used_cities[-1][-2].capitalize()
-                )
-                and i not in user.used_cities
-        ):
-            user.used_cities.append(i)
-            bot.send_message(user.user_id, f'Город: {i}\nТвой ход!')
-            bot.register_next_step_handler(message, game, user)
-            break
+
+def bot_game(message, user):
+    if user.score > user.dificulty_level:
+        bot.send_message(user.user_id, 'Ты победил! Игра окончена')
     else:
         for i in data_cities:
             if (
-                    (
-                        i[0] == user.used_cities[-1].capitalize()
-                        or user.used_cities[-1][-1] in ['ь', 'ъ', 'ы', 'й']
-                        and i[0] == user.used_cities[-2].capitalize()
-                    )
+                    i[-1] in ['а', 'к', 'о']
+                    and (
+                    i[0] == user.used_cities[-1][-1].capitalize()
+                    or user.used_cities[-1][-1] in ['ь', 'ъ', 'ы', 'й']
+                    and i[0] == user.used_cities[-1][-2].capitalize()
+            )
                     and i not in user.used_cities
             ):
                 user.used_cities.append(i)
@@ -146,21 +139,47 @@ def bot_game(message,user):
                 bot.register_next_step_handler(message, game, user)
                 break
         else:
-            bot.send_message(user.user_id, 'Ты победил! Игра окончена')
+            for i in data_cities:
+                if (
+                        (
+                                i[0] == user.used_cities[-1].capitalize()
+                                or user.used_cities[-1][-1] in ['ь', 'ъ', 'ы', 'й']
+                                and i[0] == user.used_cities[-2].capitalize()
+                        )
+                        and i not in user.used_cities
+                ):
+                    user.used_cities.append(i)
+                    bot.send_message(user.user_id, f'Город: {i}\nТвой ход!')
+                    bot.register_next_step_handler(message, game, user)
+                    break
+            else:
+
+                bot.send_message(user.user_id, 'Ты победил! Игра окончена')
+
 
 def final(message, user):
-    ...
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    btn1 = types.KeyboardButton("Играть")
+    btn2 = types.KeyboardButton("Таблица рекордов")
+    markup.add(btn1, btn2)
+    bot.send_message(user.user_id,
+                     'Ты победил! Игра окончена. Можешь гордиться этим. Чтобы начать новую игру нажмите Играть снова',
+                     reply_markup=markup)
+
 
 def records():
     ...
 
 
+def sev_game():
+    ...
 
 
 def thread_func():
     while True:
         schedule.run_pending()
         time.sleep(1)
+
 
 def create_connection(path):
     conn = None
@@ -170,7 +189,6 @@ def create_connection(path):
     except Error as e:
         print(f"Произошла ошибка '{e}'")
     return conn
-
 
 
 if __name__ == '__main__':
@@ -201,14 +219,12 @@ if __name__ == '__main__':
     """
     execute_query(connection, create_users_table)
 
-    with codecs.open('cities.json','r',"utf_8_sig") as f:
+    with codecs.open('cities.json', 'r', "utf_8_sig") as f:
         fcities = json.load(f)
 
-    a=fcities['city']
-    data_cities=list()
+    a = fcities['city']
+    data_cities = list()
     for i in a:
         data_cities.append(str(i['name']))
-
-
 
     bot.polling(none_stop=True)
