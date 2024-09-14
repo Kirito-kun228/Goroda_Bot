@@ -188,14 +188,14 @@ def final(user, win):
                      'Ты победил! Игра окончена. Можешь гордиться этим. Чтобы начать новую игру нажмите Играть снова',
                      reply_markup=markup)
     else:
-        bot.send_message(user.user_id, 'Ха-Ха-Ха Я снова победил!')
+        bot.send_message(user.user_id, 'Ха-Ха-Ха Я снова победил!', reply_markup=markup)
 
 def records(user):
     request_to_read_data = "SELECT name, max_score FROM users"
     cursor = connection.cursor()
     cursor.execute(request_to_read_data)
     data = cursor.fetchall()
-    data.sort(key=lambda x: x[1])
+    data.sort(key=lambda x: x[1], reverse=True)
     str_records=''
     for i in range(len(data)):
         str_records=str_records+f'{i+1}. {data[i][0]} {data[i][1]} \n'
