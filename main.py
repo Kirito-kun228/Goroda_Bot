@@ -1,16 +1,10 @@
-import threading
-import time
 import codecs
 import json
-from webbrowser import register
-
-import schedule
+import time
 import telebot
 import os
 import sqlite3 as sl
 from sqlite3 import Error
-
-from pyexpat.errors import messages
 from telebot import types
 
 token = os.getenv('TOKEN')
@@ -174,7 +168,7 @@ def final(user, win):
     btn2 = types.KeyboardButton("Таблица рекордов")
     markup.add(btn1, btn2)
     user.used_cities=list()
-    user.max_score=max(user.score, user.max_score)
+    user.max_score=max(int(user.score), int(user.max_score))
     user.score=0
     user.dificulty_level=0
     update_users = 'UPDATE users SET used_cities=?, score=?, max_score=?, dificulty_level=? WHERE user_id=?'
@@ -281,5 +275,11 @@ if __name__ == '__main__':
                     dificulty_level=data[i][6], )
         DATA.append(user)
 
-    bot.polling(none_stop=True)
+    while True:
+        try:
+            bot.polling(none_stop=True)  # Основной цикл прослушивания
+        except Exception as e:
+            print(f"Произошла ошибка: {e}")  # Логируем ошибку для отладки
+            time.sleep(5)  # Делаем паузу перед повторным запуском, чтобы не было перегрузки
+
 
