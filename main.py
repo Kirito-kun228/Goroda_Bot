@@ -43,15 +43,17 @@ def start_func(message):
 
 @bot.message_handler(content_types=['text'])
 def chose_func(message):
+    user=None
     # Получаем пользователя по ID
-    user=''
     for i in DATA:
         if int(i.user_id) == int(message.chat.id):
             user = i
-    if user!='' and list(user.used_cities)!=list(''.split(",")):  # Если пользователь в игре, перенаправляем на функцию game
+
+    if user is not None and (list(user.used_cities)!=list(''.split(",")) and list(user.used_cities)!=list()):  # Если пользователь в игре, перенаправляем на функцию game
         game(message, user)
     elif message.text == "Играть":
-        user = User(user_id=message.chat.id, name=message.from_user.first_name)
+        if user==None:
+            user = User(user_id=message.chat.id, name=message.from_user.first_name)
         info = cursor.execute('SELECT * FROM users WHERE user_id=?', (user.user_id,))
         if info.fetchone() is None:
             create_users = 'INSERT INTO users (user_id, name, used_cities, score, max_score, dificulty_level) VALUES (?, ?, ?, ?, ?, ?)'
@@ -66,7 +68,7 @@ def chose_func(message):
         bot.send_message(message.chat.id, 'Выбери уровень сложности', reply_markup=markup)
         bot.register_next_step_handler(message, dif_lvl, user)
     elif message.text == "Таблица рекордов":
-        records(user)
+        records(message.chat.id)
     else:
         bot.send_message(message.chat.id, 'Сообщение не распознано')
 
@@ -95,7 +97,6 @@ def dif_lvl(message, user):
 
 
 def game(message, user):
-    print(user.score, user.used_cities)
     city = str(message.text.capitalize())
     if (
             (
@@ -168,7 +169,7 @@ def final(user, win):
     btn2 = types.KeyboardButton("Таблица рекордов")
     markup.add(btn1, btn2)
     user.used_cities=list()
-    user.max_score=max(int(user.score), int(user.max_score))
+    user.max_score=int(max(int(user.score), int(user.max_score)))
     user.score=0
     user.dificulty_level=0
     update_users = 'UPDATE users SET used_cities=?, score=?, max_score=?, dificulty_level=? WHERE user_id=?'
@@ -181,10 +182,11 @@ def final(user, win):
         bot.send_message(user.user_id,
                      'Ты победил! Игра окончена. Можешь гордиться этим. Чтобы начать новую игру нажмите Играть снова',
                      reply_markup=markup)
+        bot.register_next_step_handler_by_chat_id(user.user_id,chose_func)
     else:
         bot.send_message(user.user_id, 'Ха-Ха-Ха Я снова победил!', reply_markup=markup)
-
-def records(user):
+        bot.register_next_step_handler_by_chat_id(user.user_id,chose_func)
+def records(chat):
     request_to_read_data = "SELECT name, max_score FROM users"
     cursor = connection.cursor()
     cursor.execute(request_to_read_data)
@@ -193,7 +195,7 @@ def records(user):
     str_records=''
     for i in range(len(data)):
         str_records=str_records+f'{i+1}. {data[i][0]} {data[i][1]} \n'
-    bot.send_message(user.user_id, f"Таблица рекордов:\n{str_records}")
+    bot.send_message(chat, f"Таблица рекордов:\n{str_records}")
 
 
 def sev_game(user):
@@ -205,11 +207,6 @@ def sev_game(user):
         connection.executemany(update_users, data)
     bot.register_next_step_handler_by_chat_id(user.user_id, game, user)
 
-
-def thread_func():
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
 
 
 def create_connection(path):
