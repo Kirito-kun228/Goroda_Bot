@@ -275,11 +275,6 @@ if __name__ == '__main__':
                     dificulty_level=data[i][6], )
         DATA.append(user)
 
-    while True:
-        try:
-            bot.polling(none_stop=True)  # Основной цикл прослушивания
-        except Exception as e:
-            print(f"Произошла ошибка: {e}")  # Логируем ошибку для отладки
-            time.sleep(5)  # Делаем паузу перед повторным запуском, чтобы не было перегрузки
+    bot.polling(none_stop=True)  # Основной цикл прослушивания
 
 
